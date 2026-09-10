@@ -1,0 +1,41 @@
+### Variables
+@url = http://localhost:8080/api/pedidos
+
+### 1. Obtener todos los pedidos
+GET {{url}}
+Content-Type: application/json
+
+### 2. Crear un nuevo pedido
+POST {{url}}
+Content-Type: application/json
+
+{
+    "cliente": "Juan Perez",
+    "restaurante": "Pizzeria Napoli",
+    "items": "1x Pizza Margarita, 2x Coca Cola",
+    "direccion": "Av. Siempreviva 742",
+    "montoTotal": 15000,
+    "estado": "PENDIENTE",
+    "fecha": "2026-09-10 20:30"
+}
+
+### 3. Obtener un pedido por ID (Reemplaza el 1 por el ID que se haya creado)
+GET {{url}}/1
+Content-Type: application/json
+
+### 4. Actualizar un pedido existente
+PUT {{url}}/1
+Content-Type: application/json
+
+{
+    "cliente": "Juan Perez",
+    "restaurante": "Pizzeria Napoli",
+    "items": "1x Pizza Margarita, 2x Coca Cola",
+    "direccion": "Av. Siempreviva 742",
+    "montoTotal": 15000,
+    "estado": "EN_CAMINO",
+    "fecha": "2026-09-10 21:00"
+}
+
+### 5. Eliminar un pedido
+DELETE {{url}}/1
