@@ -10,11 +10,11 @@ POST {{url}}
 Content-Type: application/json
 
 {
-    "cliente": "Juan Perez",
-    "restaurante": "Pizzeria Napoli",
+    "cliente": "Carlos López",
+    "restaurante": "Papa John's",
     "items": "1x Pizza Margarita, 2x Coca Cola",
-    "direccion": "Av. Siempreviva 742",
-    "montoTotal": 15000,
+    "direccion": "Av. Yolo 742",
+    "montoTotal": 19000,
     "estado": "PENDIENTE",
     "fecha": "2026-09-10 20:30"
 }
