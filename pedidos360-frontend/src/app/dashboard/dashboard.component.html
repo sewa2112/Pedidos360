@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedidos360 - Dashboard</title>
+  <!-- Tailwind CSS por CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-6 font-sans">
+
+  <div class="max-w-7xl mx-auto">
+    
+    <!-- Encabezado -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 mb-6 border-b border-slate-200 gap-4">
+      <div>
+        <h1 class="text-3xl font-bold text-slate-800">Gestión de Pedidos360</h1>
+        <p class="text-slate-500 text-sm mt-1">Monitoreo y seguimiento de pedidos en tiempo real</p>
+      </div>
+      <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg shadow transition duration-200 flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Nuevo Pedido
+      </button>
+    </div>
+
+    <!-- Tabla de Pedidos -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          
+          <thead>
+            <tr class="bg-slate-100 text-slate-600 uppercase text-xs font-semibold tracking-wider border-b border-slate-200">
+              <th class="py-3 px-4">ID Pedido</th>
+              <th class="py-3 px-4">Cliente</th>
+              <th class="py-3 px-4">Restaurante / Local</th>
+              <th class="py-3 px-4">Producto(s)</th>
+              <th class="py-3 px-4">Dirección</th>
+              <th class="py-3 px-4">Monto Total</th>
+              <th class="py-3 px-4">Fecha</th>
+              <th class="py-3 px-4 text-center">Estado</th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-slate-200 text-sm">
+            
+            <!-- Pedido 1 -->
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-4 px-4 font-bold text-indigo-600">#1001</td>
+              <td class="py-4 px-4 font-medium text-slate-800">Sebastian Osorio</td>
+              <td class="py-4 px-4 text-slate-600">Burger King</td>
+              <td class="py-4 px-4 text-slate-700">Doble Queso Tocino + Papas</td>
+              <td class="py-4 px-4 text-slate-500">Av. Siempre Viva 123</td>
+              <td class="py-4 px-4 font-semibold text-slate-800">$12.990</td>
+              <td class="py-4 px-4 text-slate-500 text-xs">2026-09-10</td>
+              <td class="py-4 px-4 text-center">
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-300">
+                  EN CAMINO
+                </span>
+              </td>
+            </tr>
+
+            <!-- Pedido 2 -->
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-4 px-4 font-bold text-indigo-600">#1002</td>
+              <td class="py-4 px-4 font-medium text-slate-800">Vicente Monsalve</td>
+              <td class="py-4 px-4 text-slate-600">Sushi House</td>
+              <td class="py-4 px-4 text-slate-700">Roll Acevichado (12 pcs)</td>
+              <td class="py-4 px-4 text-slate-500">Los Leones 456</td>
+              <td class="py-4 px-4 font-semibold text-slate-800">$18.500</td>
+              <td class="py-4 px-4 text-slate-500 text-xs">2026-09-10</td>
+              <td class="py-4 px-4 text-center">
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  ENTREGADO
+                </span>
+              </td>
+            </tr>
+
+            <!-- Pedido 3 -->
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-4 px-4 font-bold text-indigo-600">#1003</td>
+              <td class="py-4 px-4 font-medium text-slate-800">Camila Torres</td>
+              <td class="py-4 px-4 text-slate-600">Pizza Hut</td>
+              <td class="py-4 px-4 text-slate-700">Pizza Familiar Pepperoni</td>
+              <td class="py-4 px-4 text-slate-500">Providencia 789</td>
+              <td class="py-4 px-4 font-semibold text-slate-800">$15.990</td>
+              <td class="py-4 px-4 text-slate-500 text-xs">2026-09-10</td>
+              <td class="py-4 px-4 text-center">
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                  PENDIENTE
+                </span>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
