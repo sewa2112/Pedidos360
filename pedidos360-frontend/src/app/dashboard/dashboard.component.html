@@ -1,112 +1,149 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pedidos360 - Dashboard</title>
-  <!-- Tailwind CSS por CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50 min-h-screen p-6 font-sans">
-
-  <div class="max-w-7xl mx-auto">
-    
-    <!-- Encabezado -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 mb-6 border-b border-slate-200 gap-4">
+<div class="min-h-screen bg-slate-50 p-6 text-slate-800">
+  <div class="mx-auto max-w-7xl space-y-6">
+    <header class="flex flex-col gap-4 border-b border-slate-200 pb-6 md:flex-row md:items-center md:justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-slate-800">Gestión de Pedidos360</h1>
-        <p class="text-slate-500 text-sm mt-1">Monitoreo y seguimiento de pedidos en tiempo real</p>
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">Pedidos360</p>
+        <h1 class="mt-2 text-3xl font-bold text-slate-900">Dashboard de pedidos</h1>
       </div>
-      <div class="flex gap-3">
-        <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg shadow transition duration-200 flex items-center justify-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Nuevo Pedido
+
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          (click)="cargarPedidos()"
+          class="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white shadow transition hover:bg-indigo-700"
+        >
+          Recargar
         </button>
         <button
           type="button"
           (click)="cerrarSesion()"
-          class="bg-slate-700 hover:bg-slate-800 text-white font-medium px-4 py-2 rounded-lg shadow transition duration-200">
+          class="rounded-lg bg-slate-700 px-4 py-2 font-medium text-white shadow transition hover:bg-slate-800"
+        >
           Cerrar sesión
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- Tabla de Pedidos -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <h2 class="text-xl font-semibold text-slate-800">Nuevo pedido</h2>
+      </div>
+
+      <form class="grid gap-4 md:grid-cols-2 xl:grid-cols-6" (ngSubmit)="crearPedido()">
+        <label class="space-y-2 xl:col-span-2">
+          <span class="text-sm font-medium text-slate-600">Cliente</span>
+          <input [(ngModel)]="nuevoPedido.cliente" name="cliente" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 outline-none ring-0 transition focus:border-indigo-500" placeholder="Ej: Ana García" />
+        </label>
+
+        <label class="space-y-2 xl:col-span-2">
+          <span class="text-sm font-medium text-slate-600">Restaurante</span>
+          <input [(ngModel)]="nuevoPedido.restaurante" name="restaurante" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 outline-none transition focus:border-indigo-500" placeholder="Ej: Burger King" />
+        </label>
+
+        <label class="space-y-2 xl:col-span-2">
+          <span class="text-sm font-medium text-slate-600">Productos</span>
+          <input [(ngModel)]="nuevoPedido.items" name="items" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 outline-none transition focus:border-indigo-500" placeholder="Ej: Combo doble" />
+        </label>
+
+        <label class="space-y-2 md:col-span-2 xl:col-span-3">
+          <span class="text-sm font-medium text-slate-600">Dirección</span>
+          <input [(ngModel)]="nuevoPedido.direccion" name="direccion" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 outline-none transition focus:border-indigo-500" placeholder="Ej: Av. Siempre Viva 123" />
+        </label>
+
+        <label class="space-y-2 md:col-span-1 xl:col-span-1">
+          <span class="text-sm font-medium text-slate-600">Monto</span>
+          <input type="number" [(ngModel)]="nuevoPedido.montoTotal" name="montoTotal" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 outline-none transition focus:border-indigo-500" />
+        </label>
+
+        <label class="space-y-2 md:col-span-1 xl:col-span-1">
+          <span class="text-sm font-medium text-slate-600">Estado</span>
+          <select [(ngModel)]="nuevoPedido.estado" name="estado" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 outline-none transition focus:border-indigo-500">
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="EN CAMINO">En camino</option>
+            <option value="ENTREGADO">Entregado</option>
+          </select>
+        </label>
+
+        <label class="space-y-2 md:col-span-1 xl:col-span-1">
+          <span class="text-sm font-medium text-slate-600">Fecha</span>
+          <input type="date" [(ngModel)]="nuevoPedido.fecha" name="fecha" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 outline-none transition focus:border-indigo-500" />
+        </label>
+
+        <div class="flex items-end xl:col-span-1">
+          <button type="submit" class="w-full rounded-lg bg-emerald-600 px-4 py-2.5 font-semibold text-white transition hover:bg-emerald-700">
+            Guardar
+          </button>
+        </div>
+      </form>
+
+      @if (error) {
+        <p class="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</p>
+      }
+    </section>
+
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          
-          <thead>
-            <tr class="bg-slate-100 text-slate-600 uppercase text-xs font-semibold tracking-wider border-b border-slate-200">
-              <th class="py-3 px-4">ID Pedido</th>
-              <th class="py-3 px-4">Cliente</th>
-              <th class="py-3 px-4">Restaurante / Local</th>
-              <th class="py-3 px-4">Producto(s)</th>
-              <th class="py-3 px-4">Dirección</th>
-              <th class="py-3 px-4">Monto Total</th>
-              <th class="py-3 px-4">Fecha</th>
-              <th class="py-3 px-4 text-center">Estado</th>
+        <table class="w-full border-collapse text-left text-sm">
+          <thead class="bg-slate-100 text-slate-600 uppercase tracking-wider">
+            <tr>
+              <th class="px-4 py-3">ID</th>
+              <th class="px-4 py-3">Cliente</th>
+              <th class="px-4 py-3">Restaurante</th>
+              <th class="px-4 py-3">Productos</th>
+              <th class="px-4 py-3">Dirección</th>
+              <th class="px-4 py-3">Monto</th>
+              <th class="px-4 py-3">Fecha</th>
+              <th class="px-4 py-3 text-center">Estado</th>
+              <th class="px-4 py-3 text-center">Acciones</th>
             </tr>
           </thead>
 
-          <tbody class="divide-y divide-slate-200 text-sm">
-            
-            <!-- Pedido 1 -->
-            <tr class="hover:bg-slate-50 transition">
-              <td class="py-4 px-4 font-bold text-indigo-600">#1001</td>
-              <td class="py-4 px-4 font-medium text-slate-800">Sebastian Osorio</td>
-              <td class="py-4 px-4 text-slate-600">Burger King</td>
-              <td class="py-4 px-4 text-slate-700">Doble Queso Tocino + Papas</td>
-              <td class="py-4 px-4 text-slate-500">Av. Siempre Viva 123</td>
-              <td class="py-4 px-4 font-semibold text-slate-800">$12.990</td>
-              <td class="py-4 px-4 text-slate-500 text-xs">2026-09-10</td>
-              <td class="py-4 px-4 text-center">
-                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-300">
-                  EN CAMINO
-                </span>
-              </td>
-            </tr>
-
-            <!-- Pedido 2 -->
-            <tr class="hover:bg-slate-50 transition">
-              <td class="py-4 px-4 font-bold text-indigo-600">#1002</td>
-              <td class="py-4 px-4 font-medium text-slate-800">Vicente Monsalve</td>
-              <td class="py-4 px-4 text-slate-600">Sushi House</td>
-              <td class="py-4 px-4 text-slate-700">Roll Acevichado (12 pcs)</td>
-              <td class="py-4 px-4 text-slate-500">Los Leones 456</td>
-              <td class="py-4 px-4 font-semibold text-slate-800">$18.500</td>
-              <td class="py-4 px-4 text-slate-500 text-xs">2026-09-10</td>
-              <td class="py-4 px-4 text-center">
-                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  ENTREGADO
-                </span>
-              </td>
-            </tr>
-
-            <!-- Pedido 3 -->
-            <tr class="hover:bg-slate-50 transition">
-              <td class="py-4 px-4 font-bold text-indigo-600">#1003</td>
-              <td class="py-4 px-4 font-medium text-slate-800">Camila Torres</td>
-              <td class="py-4 px-4 text-slate-600">Pizza Hut</td>
-              <td class="py-4 px-4 text-slate-700">Pizza Familiar Pepperoni</td>
-              <td class="py-4 px-4 text-slate-500">Providencia 789</td>
-              <td class="py-4 px-4 font-semibold text-slate-800">$15.990</td>
-              <td class="py-4 px-4 text-slate-500 text-xs">2026-09-10</td>
-              <td class="py-4 px-4 text-center">
-                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
-                  PENDIENTE
-                </span>
-              </td>
-            </tr>
-
+          <tbody class="divide-y divide-slate-200">
+            @if (cargando) {
+              <tr>
+                <td colspan="9" class="px-4 py-8 text-center text-slate-500">Cargando pedidos...</td>
+              </tr>
+            } @else if (!pedidos.length) {
+              <tr>
+                <td colspan="9" class="px-4 py-8 text-center text-slate-500">No hay pedidos registrados.</td>
+              </tr>
+            } @else {
+              @for (pedido of pedidos; track pedido.id) {
+                <tr class="hover:bg-slate-50">
+                  <td class="px-4 py-3 font-bold text-indigo-600">#{{ pedido.id }}</td>
+                  <td class="px-4 py-3 font-medium text-slate-800">{{ pedido.cliente }}</td>
+                  <td class="px-4 py-3 text-slate-600">{{ pedido.restaurante }}</td>
+                  <td class="px-4 py-3 text-slate-700">{{ pedido.items }}</td>
+                  <td class="px-4 py-3 text-slate-500">{{ pedido.direccion || 'Sin dirección' }}</td>
+                  <td class="px-4 py-3 font-semibold text-slate-800">{{ formatearMonto(pedido.montoTotal) }}</td>
+                  <td class="px-4 py-3 text-slate-500">{{ pedido.fecha || 'Sin fecha' }}</td>
+                  <td class="px-4 py-3 text-center">
+                    <select
+                      [value]="pedido.estado || 'PENDIENTE'"
+                      (change)="actualizarEstadoPedido(pedido.id, $any($event.target).value)"
+                      class="rounded-full border px-2.5 py-1 text-xs font-semibold outline-none"
+                      [ngClass]="estadoClase(pedido.estado)"
+                    >
+                      <option value="PENDIENTE">PENDIENTE</option>
+                      <option value="EN CAMINO">EN CAMINO</option>
+                      <option value="ENTREGADO">ENTREGADO</option>
+                    </select>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <button
+                      type="button"
+                      (click)="eliminarPedido(pedido.id)"
+                      class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              }
+            }
           </tbody>
         </table>
       </div>
-    </div>
-
+    </section>
   </div>
-
-</body>
-</html>
+</div>
