@@ -3,6 +3,7 @@ package cl.duoc.pedidos360.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +36,7 @@ public class PedidoController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('SCOPE_OT.Create')")
     public Pedido guardar(@RequestBody Pedido pedido) {
         return pedidoService.guardar(pedido);
     }
