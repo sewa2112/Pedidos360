@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Pedido {
   id?: number;
@@ -21,7 +22,7 @@ export interface Pedido {
 })
 export class PedidoService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:8085/api/pedidos';
+  private readonly apiUrl = `${environment.apiBaseUrl}/api/pedidos`;
 
   getPedidos(): Observable<Pedido[]> {
     return this.http.get<Pedido[]>(this.apiUrl);

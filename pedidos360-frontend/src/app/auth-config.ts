@@ -3,16 +3,17 @@ import {
   Configuration,
   LogLevel
 } from '@azure/msal-browser';
+import { environment } from '../environments/environment';
 
-export const tenantId = 'ac6019c7-78df-4d97-9d85-291001476eb0';
+export const tenantId = environment.azure.tenantId;
 
-export const frontendClientId = '4ad65278-8f7b-4a8f-844c-6dd0ad3736a2';
+export const frontendClientId = environment.azure.clientId;
 
-export const authority = `https://login.microsoftonline.com/${tenantId}`;
+export const authority = environment.azure.authority;
 
-export const redirectUri = 'http://localhost:4200';
+export const redirectUri = environment.azure.redirectUri;
 
-export const apiScope = 'api://cfd3c072-73f2-4aba-b0b3-e2450e8d4117/access_as_user';
+export const apiScope = environment.azure.protectedResourceScopes[0];
 
 export const msalConfig: Configuration = {
   auth: {
