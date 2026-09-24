@@ -1,0 +1,37 @@
+services:
+  backend:
+    build:
+      context: ./pedidos360-backend
+      dockerfile: Dockerfile
+    container_name: pedidos360-backend
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:mysql://pedidos-360.cye5cunhy7aj.us-east-1.rds.amazonaws.com:3306/pedidos360}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-admin}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD:-ContrasenaMaestra}
+      - SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_PROFILE_TENANT_ID=${AZURE_TENANT_ID:-ac6019c7-78df-4d97-9d85-291001476eb0}
+      - SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_CREDENTIAL_CLIENT_ID=${AZURE_BACKEND_CLIENT_ID:-f900a1e2-036a-485f-b14f-c22a1ccf7005}
+      - SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_APP_ID_URI=${AZURE_APP_ID_URI:-api://f900a1e2-036a-485f-b14f-c22a1ccf7005}
+      - SERVER_PORT=8085
+    networks:
+      - pedidos360-network
+
+  frontend:
+    build:
+      context: ./pedidos360-frontend
+      dockerfile: Dockerfile
+    container_name: pedidos360-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - pedidos360-network
+
+networks:
+  pedidos360-network:
+    driver: bridge
+
