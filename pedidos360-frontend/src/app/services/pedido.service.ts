@@ -22,7 +22,7 @@ export interface Pedido {
 })
 export class PedidoService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiBaseUrl}/api/pedidos`;
+  private readonly apiUrl = `${environment.apiBaseUrl}/pedidos`;
 
   getPedidos(): Observable<Pedido[]> {
     return this.http.get<Pedido[]>(this.apiUrl);

@@ -8,5 +8,6 @@ export const environment = {
     redirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4200',
     protectedResourceScopes: ['api://f900a1e2-036a-485f-b14f-c22a1ccf7005/OT.Create']
   },
-  apiBaseUrl: typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '' : 'http://localhost:8085'
+  // AWS API Gateway Invoke URL
+  apiBaseUrl: 'https://i978rx7sdd.execute-api.us-east-1.amazonaws.com'
 };
