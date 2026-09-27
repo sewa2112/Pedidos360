@@ -18,7 +18,7 @@ import cl.duoc.pedidos360.models.Pedido;
 import cl.duoc.pedidos360.service.PedidoService;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(originPatterns = "*")
 @RequestMapping("/api/pedidos")
 public class PedidoController {
 
