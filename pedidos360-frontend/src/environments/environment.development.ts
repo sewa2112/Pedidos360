@@ -9,5 +9,5 @@ export const environment = {
     protectedResourceScopes: ['api://f900a1e2-036a-485f-b14f-c22a1ccf7005/OT.Create']
   },
   // AWS API Gateway Invoke URL
-  apiBaseUrl: 'https://i978rx7sdd.execute-api.us-east-1.amazonaws.com'
+  apiBaseUrl: 'https://0i74gnrx68.execute-api.us-east-1.amazonaws.com'
 };
