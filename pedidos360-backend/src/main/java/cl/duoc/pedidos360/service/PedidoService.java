@@ -15,6 +15,9 @@ public class PedidoService {
 @Autowired
     private PedidoRepository pedidoRepository;
 
+    @Autowired
+    private OrderEventPublisher orderEventPublisher;
+
     public List<Pedido> obtenerTodos() {
         return pedidoRepository.findAll();
     }
@@ -29,7 +32,10 @@ public class PedidoService {
 
     public Pedido guardar(Pedido pedido) {
         try {
-            return pedidoRepository.save(pedido);
+            Pedido pedidoGuardado = pedidoRepository.save(pedido);
+            // Publica el evento de forma asíncrona y desacoplada a RabbitMQ
+            orderEventPublisher.publishOrderCreated(pedidoGuardado);
+            return pedidoGuardado;
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e);
