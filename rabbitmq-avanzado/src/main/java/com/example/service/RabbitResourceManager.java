@@ -4,15 +4,17 @@ import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import com.example.dto.*;
 import org.springframework.stereotype.Service;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class RabbitResourceManager {
 
     private final RabbitAdmin rabbitAdmin;
+
+    public RabbitResourceManager(RabbitAdmin rabbitAdmin) {
+        this.rabbitAdmin = rabbitAdmin;
+    }
 
     public void createQueue(String queueName) {
         createQueue(CreateQueueDTO.builder().name(queueName).durable(true).build());

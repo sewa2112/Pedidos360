@@ -5,7 +5,6 @@ import com.example.dto.CreateExchangeDTO;
 import com.example.dto.CreateQueueDTO;
 import com.example.service.RabbitResourceManager;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,10 +13,13 @@ import java.util.Map;
 
 @RestController
 @RequestMapping({"/api/rabbitmq", ""})
-@RequiredArgsConstructor
 public class RabbitMQController {
 
     private final RabbitResourceManager resourceManager;
+
+    public RabbitMQController(RabbitResourceManager resourceManager) {
+        this.resourceManager = resourceManager;
+    }
 
     @PostMapping("/queues")
     public ResponseEntity<?> createQueue(
