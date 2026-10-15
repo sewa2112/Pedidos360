@@ -2,7 +2,6 @@ package cl.duoc.pedidos360.service;
 
 import cl.duoc.pedidos360.config.RabbitMQConfig;
 import cl.duoc.pedidos360.models.Pedido;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
@@ -12,10 +11,13 @@ import java.util.Map;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class OrderEventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
+
+    public OrderEventPublisher(RabbitTemplate rabbitTemplate) {
+        this.rabbitTemplate = rabbitTemplate;
+    }
 
     /**
      * Publica de forma desacoplada un evento de creación de pedido hacia RabbitMQ.
