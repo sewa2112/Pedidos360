@@ -1,12 +1,14 @@
 package com.example.listener;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
-@Slf4j
 public class OrderListener {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderListener.class);
 
     @RabbitListener(
             id = "order-listener",
@@ -24,4 +26,3 @@ public class OrderListener {
         }
     }
 }
-

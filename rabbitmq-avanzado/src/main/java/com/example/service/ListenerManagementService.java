@@ -1,14 +1,17 @@
 package com.example.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.listener.MessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistry;
 import org.springframework.stereotype.Service;
-import lombok.extern.slf4j.Slf4j;
+
 import java.util.List;
 
 @Service
-@Slf4j
 public class ListenerManagementService {
+
+    private static final Logger log = LoggerFactory.getLogger(ListenerManagementService.class);
 
     private final RabbitListenerEndpointRegistry registry;
 
@@ -44,4 +47,3 @@ public class ListenerManagementService {
         return registry.getListenerContainerIds().stream().toList();
     }
 }
-

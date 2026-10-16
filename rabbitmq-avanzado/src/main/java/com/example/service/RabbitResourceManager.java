@@ -1,14 +1,16 @@
 package com.example.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import com.example.dto.*;
 import org.springframework.stereotype.Service;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
-@Slf4j
 public class RabbitResourceManager {
+
+    private static final Logger log = LoggerFactory.getLogger(RabbitResourceManager.class);
 
     private final RabbitAdmin rabbitAdmin;
 
@@ -115,4 +117,3 @@ public class RabbitResourceManager {
         }
     }
 }
-

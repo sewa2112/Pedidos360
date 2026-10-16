@@ -3,15 +3,7 @@ package com.example.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class CreateQueueDTO {
 
     @NotBlank(message = "El nombre de la cola no puede estar vacío")
@@ -22,7 +14,52 @@ public class CreateQueueDTO {
     )
     private String name;
 
-    @Builder.Default
     private boolean durable = true;
-}
 
+    public CreateQueueDTO() {
+    }
+
+    public CreateQueueDTO(String name, boolean durable) {
+        this.name = name;
+        this.durable = durable;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public boolean isDurable() {
+        return durable;
+    }
+
+    public void setDurable(boolean durable) {
+        this.durable = durable;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String name;
+        private boolean durable = true;
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder durable(boolean durable) {
+            this.durable = durable;
+            return this;
+        }
+
+        public CreateQueueDTO build() {
+            return new CreateQueueDTO(name, durable);
+        }
+    }
+}
