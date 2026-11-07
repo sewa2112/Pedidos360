@@ -1,17 +1,28 @@
 package com.example;
 
 import com.rabbitmq.client.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
 @Service
 public class OrderConsumer {
 
+    private static final Logger log = LoggerFactory.getLogger(OrderConsumer.class);
+    private static final int MAX_RETRIES = 3;
+
+    // Rastreador de reintentos por tag de entrega para controlar el flujo antes de enviar al DLX
+    private final ConcurrentHashMap<String, AtomicInteger> retryTracker = new ConcurrentHashMap<>();
+
     /**
-     * Consumidor principal: Recibe ordenes de la cola principal.
-     * Simula fallos aleatorios para demostrar el DLX.
+     * Consumidor principal: Recibe ordenes de orders.queue.
+     * Implementa politica de reintentos finita (max 3) y desvio al DLX tras agotarlos.
      */
     @RabbitListener(queues = RabbitMQConfig.ORDERS_QUEUE)
     public void processOrder(
@@ -19,42 +30,42 @@ public class OrderConsumer {
             Channel channel,
             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
 
-        try {
-            System.out.println("[PROCESADOR] Recibida orden: " + message);
+        String trackingKey = "msg-" + deliveryTag;
+        AtomicInteger attempts = retryTracker.computeIfAbsent(trackingKey, k -> new AtomicInteger(0));
+        int currentAttempt = attempts.incrementAndGet();
 
-            // SIMULACION DE FALLO ALEATORIO
-            // 50% de probabilidad de fallar en los primeros 2 intentos
-            if (Math.random() < 0.5) {
-                throw new RuntimeException("Error simulado al procesar: " + message);
+        try {
+            log.info("[PROCESADOR] Recibida orden (intento {}/{}): {}", currentAttempt, MAX_RETRIES, message);
+
+            // Simulacion de fallo en el primer intento para verificar la politica de reintentos
+            if (currentAttempt < MAX_RETRIES && message.contains("error")) {
+                throw new RuntimeException("Error simulado de negocio/conectividad al procesar: " + message);
             }
 
-            // Si llegamos aqui, procesamiento exitoso
-            System.out.println("[EXITO] Orden procesada correctamente: " + message);
+            // Procesamiento exitoso
+            log.info("[EXITO] Orden procesada correctamente en intento {}: {}", currentAttempt, message);
+            retryTracker.remove(trackingKey);
 
-            // Ack manual: Le decimos a RabbitMQ que todo estuvo bien
+            // Ack manual hacia RabbitMQ
             channel.basicAck(deliveryTag, false);
 
         } catch (Exception e) {
-            System.out.println("[ERROR] " + e.getMessage());
+            log.warn("[FALLO] Intento {} fallido para el mensaje: {}. Causa: {}", currentAttempt, message, e.getMessage());
 
             try {
-                // Nack con requeue=false: Va al DLX, no se reintenta aqui
-                channel.basicNack(deliveryTag, false, false);
-                System.out.println("[-> DLX] Mensaje enviado a Dead Letter Exchange");
-
+                if (currentAttempt < MAX_RETRIES) {
+                    // Reintento: Reencola el mensaje en orders.queue
+                    log.info("[REINTENTO] Reencolando mensaje (intento {} de {}) con basicNack(requeue=true)", currentAttempt, MAX_RETRIES);
+                    channel.basicNack(deliveryTag, false, true);
+                } else {
+                    // Reintentos agotados: Desvia al Dead Letter Exchange (DLX)
+                    log.error("[DLX] Maximo de reintentos alcanzado ({}). Desviando mensaje a DLX con basicNack(requeue=false)", MAX_RETRIES);
+                    retryTracker.remove(trackingKey);
+                    channel.basicNack(deliveryTag, false, false);
+                }
             } catch (Exception nackException) {
-                nackException.printStackTrace();
+                log.error("Fallo critico al emitir basicNack: {}", nackException.getMessage());
             }
         }
     }
-
-    /**
-     * Consumidor de DLQ: Monitorea los mensajes que fallaron definitivamente.
-     */
-    @RabbitListener(queues = RabbitMQConfig.DLQ_QUEUE)
-    public void processDLQ(String message) {
-        System.out.println("[DLQ] MENSAJE EN CUARENTENA: " + message);
-        System.out.println("    -> Revisar logs del procesador para diagrama del fallo.");
-    }
 }
-

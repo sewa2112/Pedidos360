@@ -7,8 +7,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=admin
-      - RABBITMQ_DEFAULT_PASS=admin123
+      - RABBITMQ_DEFAULT_USER=${SPRING_RABBITMQ_USERNAME:-admin}
+      - RABBITMQ_DEFAULT_PASS=${SPRING_RABBITMQ_PASSWORD:-admin123}
     networks:
       - pedidos360-network
 
@@ -29,9 +29,66 @@ services:
       - SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_APP_ID_URI=${AZURE_APP_ID_URI:-api://f900a1e2-036a-485f-b14f-c22a1ccf7005}
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_RABBITMQ_PORT=5672
-      - SPRING_RABBITMQ_USERNAME=admin
-      - SPRING_RABBITMQ_PASSWORD=admin123
+      - SPRING_RABBITMQ_USERNAME=${SPRING_RABBITMQ_USERNAME:-admin}
+      - SPRING_RABBITMQ_PASSWORD=${SPRING_RABBITMQ_PASSWORD:-admin123}
       - SERVER_PORT=8085
+    depends_on:
+      - rabbitmq
+    networks:
+      - pedidos360-network
+
+  local-service:
+    build:
+      context: ./local-service
+      dockerfile: Dockerfile
+    container_name: pedidos360-local-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=${SPRING_RABBITMQ_USERNAME:-admin}
+      - SPRING_RABBITMQ_PASSWORD=${SPRING_RABBITMQ_PASSWORD:-admin123}
+      - SERVER_PORT=8082
+    depends_on:
+      - rabbitmq
+    networks:
+      - pedidos360-network
+
+  order-processor-dlq:
+    build:
+      context: ./order-processor-dlq
+      dockerfile: Dockerfile
+    container_name: pedidos360-order-processor
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=${SPRING_RABBITMQ_USERNAME:-admin}
+      - SPRING_RABBITMQ_PASSWORD=${SPRING_RABBITMQ_PASSWORD:-admin123}
+      - SERVER_PORT=8081
+    depends_on:
+      - rabbitmq
+    networks:
+      - pedidos360-network
+
+  rabbitmq-avanzado:
+    build:
+      context: ./rabbitmq-avanzado
+      dockerfile: Dockerfile
+    container_name: pedidos360-rabbitmq-admin
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=${SPRING_RABBITMQ_USERNAME:-admin}
+      - SPRING_RABBITMQ_PASSWORD=${SPRING_RABBITMQ_PASSWORD:-admin123}
+      - SERVER_PORT=8080
     depends_on:
       - rabbitmq
     networks:

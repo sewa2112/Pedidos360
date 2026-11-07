@@ -123,27 +123,34 @@ A traves de `ListenerManagementService` y su controlador REST, es posible detene
 | Componente | Directorio | Tecnologia | Puertos | Responsabilidad |
 |---|---|---|---|---|
 | **Frontend SPA** | `pedidos360-frontend` | Angular 21 + Nginx Alpine | `80` (HTTP) / `443` (HTTPS) | Interfaz web de usuario, flujo OIDC con MSAL y consumo seguro de APIs. |
-| **Backend Principal** | `pedidos360-backend` | Spring Boot 4 + Java 21 | `8085` | Logica de negocio, persistencia en AWS RDS MySQL y publicacion de eventos. |
-| **Procesador y DLQ** | `order-processor-dlq` | Spring Boot 3 + Spring AMQP | `8080` | Consumo concurrente, manual ACK/NACK, envio a DLX y logs de cuarentena. |
-| **Administrador RabbitMQ** | `rabbitmq-avanzado` | Spring Boot 3 + Spring AMQP | `8080` | Endpoints REST para administrar colas/exchanges, control de listeners y cluster. |
+| **Microservicio Pedidos** | `pedidos360-backend` | Spring Boot 4 + Java 21 | `8085` | Gestion del ciclo de vida de pedidos, persistencia en AWS RDS MySQL y publicacion de eventos. |
+| **Microservicio Locales** | `local-service` | Spring Boot 4 + Java 21 | `8082` | Gestion de locales/restaurantes, catalogo y recepcion asincrona de pedidos en cocina. |
+| **Procesador y DLQ** | `order-processor-dlq` | Spring Boot 3 + Spring AMQP | `8081` | Consumo concurrente, politicas de reintentos, manual ACK/NACK, y gestion de cuarentena en DLQ. |
+| **Administrador RabbitMQ** | `rabbitmq-avanzado` | Spring Boot 3 + Spring AMQP | `8080` | Endpoints REST para administrar colas/exchanges, control dinamico de listeners y cluster. |
 | **Broker de Mensajeria** | Contenedor Docker | RabbitMQ 3.12 Management | `5672` (AMQP) / `15672` (Web UI) | Broker de eventos y colas con interfaz grafica de administracion. |
 | **Base de Datos Cloud** | AWS RDS Gestionada | MySQL 8.0 | `3306` | Persistencia relacional de clientes, restaurantes, items y pedidos. |
 
 ---
 
-## 6. Despliegue en AWS EC2 y Verificacion en Vivo
+## 6. Despliegue en AWS EC2 y Sincronizacion del Repositorio
 
-### Despliegue en Produccion (EC2)
-En la instancia EC2 (`52.22.210.39`), toda la solucion se orquesta con Docker Compose:
+### Como incorporar los cambios en la instancia EC2
+
+Para actualizar la aplicacion en la maquina virtual de produccion (`52.22.210.39`), sigue estos pasos desde tu terminal:
 
 ```bash
-# 1. Comprobar memoria y Swap en la maquina
-free -h
+# 1. Conectarse a la instancia EC2 mediante SSH
+ssh -i "clave.pem" ubuntu@52.22.210.39
 
-# 2. Levantar la suite completa en segundo plano
+# 2. Entrar al directorio del repositorio y sincronizar los ultimos commits
+cd ~/Pedidos360
+git pull origin main
+
+# 3. Detener versiones anteriores y reconstruir la suite completa con Docker Compose
+sudo docker compose down
 sudo docker compose up -d --build
 
-# 3. Comprobar que los tres servicios esten en estado Up
+# 4. Comprobar que todos los contenedores esten en estado Up
 sudo docker compose ps
 ```
 
