@@ -1,5 +1,4 @@
 node_modules
-dist
 .angular
 .git
 .gitignore
@@ -7,4 +6,3 @@ dist
 .vscode
 .editorconfig
 npm-debug.log*
-
