@@ -14,6 +14,9 @@ RUN npm ci --ignore-scripts
 # Copiar el código fuente
 COPY . .
 
+# Limitar memoria de Node para evitar OOM en máquinas con 1GB RAM
+ENV NODE_OPTIONS="--max-old-space-size=512"
+
 # Build de producción
 RUN npm run build -- --configuration production
 
