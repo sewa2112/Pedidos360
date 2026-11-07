@@ -1,27 +1,5 @@
 # ===========================
-# STAGE 1: Build con Node.js
-# ===========================
-FROM node:22-alpine AS builder
-
-WORKDIR /app
-
-# Copiar package.json primero para caché de capas
-COPY package.json package-lock.json ./
-
-# Instalar dependencias
-RUN npm ci --ignore-scripts
-
-# Copiar el código fuente
-COPY . .
-
-# Limitar memoria de Node para evitar OOM en máquinas con 1GB RAM
-ENV NODE_OPTIONS="--max-old-space-size=512"
-
-# Build de producción
-RUN npm run build -- --configuration production
-
-# ===========================
-# STAGE 2: Servidor NGINX con HTTPS
+# Servidor NGINX con HTTPS (Servicio de archivos estaticos precompilados)
 # ===========================
 FROM nginx:1.27-alpine
 
@@ -33,14 +11,14 @@ RUN apk add --no-cache openssl && \
     -out /etc/ssl/certs/selfsigned.crt \
     -subj "/C=CL/ST=RM/L=Santiago/O=Pedidos360/CN=pedidos360"
 
-# Eliminar configuración por defecto de nginx
+# Eliminar configuracion por defecto de nginx
 RUN rm /etc/nginx/conf.d/default.conf
 
-# Copiar la configuración personalizada con soporte SSL
+# Copiar la configuracion personalizada con soporte SSL
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copiar los archivos del build de Angular
-COPY --from=builder /app/dist/pedidos360-frontend/browser /usr/share/nginx/html
+# Copiar los archivos estaticos precompilados de Angular
+COPY dist/pedidos360-frontend/browser /usr/share/nginx/html
 
 EXPOSE 80 443
 
