@@ -7,6 +7,21 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
+        <nav class="flex items-center gap-1 rounded-xl bg-slate-200/80 p-1">
+          <a
+            routerLink="/dashboard"
+            class="rounded-lg bg-white px-3.5 py-1.5 text-sm font-semibold text-indigo-700 shadow-sm"
+          >
+            Pedidos
+          </a>
+          <a
+            routerLink="/locales"
+            class="rounded-lg px-3.5 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-white hover:shadow-sm"
+          >
+            Locales & Cocina
+          </a>
+        </nav>
+
         <button
           type="button"
           (click)="cargarPedidos()"

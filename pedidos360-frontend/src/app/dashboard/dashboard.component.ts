@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AccountInfo } from '@azure/msal-browser';
 import { MsalService } from '@azure/msal-angular';
 import { redirectUri } from '../auth-config';
@@ -10,7 +10,7 @@ import { Pedido, PedidoService } from '../services/pedido.service';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.css',
 })
