@@ -86,7 +86,7 @@ En `RabbitMQConfig` se definieron de forma centralizada:
 El consumidor `OrderConsumer` opera con confirmaciones manuales (`acknowledge-mode: manual`):
 - **Exito**: Si el procesamiento concluye adecuadamente, se ejecuta `channel.basicAck(deliveryTag, false)`.
 - **Falla Controlada**: Ante una excepcion o error no recuperable, se invoca `channel.basicNack(deliveryTag, false, false)` con `requeue = false`. Esto evita ciclos infinitos de reintentos sobre la cola principal y deriva el mensaje directamente al DLX.
-- **Auditoria de Cuarentena**: Un listener conectado a `orders.dlq` captura los mensajes que cayeron en cuarentena e imprime trazas estructuradas para su monitoreo.
+- **Consola de Auditoria y Cuarentena (sin consumo destructivo)**: Se elimino cualquier consumidor destructivo sobre `orders.dlq` para conservar los mensajes fallidos en cuarentena; `DLQManagementController` expone `GET /api/dlq/status`, inspeccion no destructiva `GET /api/dlq/inspect` (`basicGet` + `basicNack(requeue=true)`) y reprocesamiento manual `POST /api/dlq/reprocess`.
 
 ---
 
@@ -95,7 +95,7 @@ El consumidor `OrderConsumer` opera con confirmaciones manuales (`acknowledge-mo
 Este microservicio se encarga de la administracion programatica del broker y provee tolerancia a fallos.
 
 ### Cluster de Alta Disponibilidad con Docker Compose
-Se configuro un cluster de dos nodos (`rabbitmq-1` y `rabbitmq-2`) interconectados en una red bridge compartiendo la misma cookie de Erlang (`secret_cookie_value`) y sincronizando colas y exchanges mediante classic peer discovery:
+Se configuro un cluster de dos nodos (`rabbitmq-1` y `rabbitmq-2`) interconectados en una red bridge compartiendo la cookie de Erlang configurada mediante la variable de entorno `RABBITMQ_ERLANG_COOKIE` (sin credenciales ni cookies reales en el repositorio) y sincronizando colas y exchanges mediante classic peer discovery:
 - **Nodo 1**: Puerto AMQP `5672` / Consola Web `15672`.
 - **Nodo 2**: Puerto AMQP `5673` / Consola Web `15673`.
 - **Sincronizacion**: `queue_master_locator = min-masters`.
@@ -125,9 +125,10 @@ A traves de `ListenerManagementService` y su controlador REST, es posible detene
 | **Frontend SPA** | `pedidos360-frontend` | Angular 21 + Nginx Alpine | `80` (HTTP) / `443` (HTTPS) | Interfaz web de usuario, flujo OIDC con MSAL y consumo seguro de APIs. |
 | **Microservicio Pedidos** | `pedidos360-backend` | Spring Boot 4 + Java 21 | `8085` | Gestion del ciclo de vida de pedidos, persistencia en AWS RDS MySQL y publicacion de eventos. |
 | **Microservicio Locales** | `local-service` | Spring Boot 4 + Java 21 | `8082` | Gestion de locales/restaurantes, catalogo y recepcion asincrona de pedidos en cocina. |
-| **Procesador y DLQ** | `order-processor-dlq` | Spring Boot 3 + Spring AMQP | `8081` | Consumo concurrente, politicas de reintentos, manual ACK/NACK, y gestion de cuarentena en DLQ. |
-| **Administrador RabbitMQ** | `rabbitmq-avanzado` | Spring Boot 3 + Spring AMQP | `8080` | Endpoints REST para administrar colas/exchanges, control dinamico de listeners y cluster. |
-| **Broker de Mensajeria** | Contenedor Docker | RabbitMQ 3.12 Management | `5672` (AMQP) / `15672` (Web UI) | Broker de eventos y colas con interfaz grafica de administracion. |
+| **Procesador y DLQ** | `order-processor-dlq` | Spring Boot 3 + Spring AMQP | `8081` | Consumo concurrente, politicas de reintentos, manual ACK/NACK, inspeccion no destructiva y gestion de cuarentena en DLQ. |
+| **Administrador RabbitMQ** | `rabbitmq-avanzado` | Spring Boot 3 + Spring AMQP | `8080` | Endpoints REST para administrar colas/exchanges/bindings, control dinamico de listeners y cluster. |
+| **Sistema de Logging** | `logging-system` | Spring Boot 3 + Spring AMQP | `8083` | Auditoria y alertas criticas desacopladas por severidad con validacion de eventos y manual ACK/NACK. |
+| **Broker de Mensajeria** | Contenedor Docker | RabbitMQ 3.12 Management | `5672` (AMQP) / `15672` (Web UI) | Broker de eventos y colas con interfaz grafica de administracion y healthcheck integrado. |
 | **Base de Datos Cloud** | AWS RDS Gestionada | MySQL 8.0 | `3306` | Persistencia relacional de clientes, restaurantes, items y pedidos. |
 
 ---
@@ -146,31 +147,36 @@ ssh -i "clave.pem" ubuntu@52.22.210.39
 cd ~/Pedidos360
 git pull origin main
 
-# 3. Detener versiones anteriores y reconstruir la suite completa con Docker Compose
+# 3. Configurar .env desde .env.example con credenciales reales (archivo ignorado por Git)
+cp .env.example .env
+
+# 4. Detener versiones anteriores y reconstruir la suite completa con Docker Compose
 sudo docker compose down
 sudo docker compose up -d --build
 
-# 4. Comprobar que todos los contenedores esten en estado Up
+# 5. Comprobar que todos los contenedores esten en estado Up
 sudo docker compose ps
 ```
 
 ### Comprobacion de RabbitMQ desde la Consola de EC2
-Para inspeccionar el motor de mensajeria directamente en el contenedor:
+Para inspeccionar el motor de mensajeria directamente en el contenedor (cargando credenciales desde `.env`):
 
 ```bash
+source .env
+
 # Ver estado de colas
-sudo docker exec pedidos360-rabbitmq rabbitmqadmin -u admin -p admin123 list queues
+sudo docker exec pedidos360-rabbitmq rabbitmqadmin -u "$SPRING_RABBITMQ_USERNAME" -p "$SPRING_RABBITMQ_PASSWORD" list queues
 
 # Publicar un mensaje manual de prueba en el Exchange
-sudo docker exec pedidos360-rabbitmq rabbitmqadmin -u admin -p admin123 publish exchange=orders.exchange routing_key=order.created payload='{"pedidoId":99,"cliente":"Prueba Docente"}'
+sudo docker exec pedidos360-rabbitmq rabbitmqadmin -u "$SPRING_RABBITMQ_USERNAME" -p "$SPRING_RABBITMQ_PASSWORD" publish exchange=orders.exchange routing_key=order.created payload='{"pedidoId":99,"cliente":"Prueba Docente"}'
 
 # Leer y confirmar el mensaje desde la cola
-sudo docker exec pedidos360-rabbitmq rabbitmqadmin -u admin -p admin123 get queue=orders.queue ackmode=ack_requeue_false
+sudo docker exec pedidos360-rabbitmq rabbitmqadmin -u "$SPRING_RABBITMQ_USERNAME" -p "$SPRING_RABBITMQ_PASSWORD" get queue=orders.queue ackmode=ack_requeue_false
 ```
 
 ### Accesos Directos
 - **Frontend SPA en Produccion**: `https://52.22.210.39`
-- **Consola Grafica de RabbitMQ**: `http://52.22.210.39:15672` (Usuario: `admin` / Password: `admin123`)
+- **Consola Grafica de RabbitMQ**: `http://52.22.210.39:15672` (Credenciales definidas en `.env`)
 - **AWS API Gateway**: `https://0i74gnrx68.execute-api.us-east-1.amazonaws.com/pedidos`
 
 ---

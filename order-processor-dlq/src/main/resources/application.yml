@@ -4,18 +4,16 @@ spring:
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
     port: ${SPRING_RABBITMQ_PORT:5672}
-    username: ${SPRING_RABBITMQ_USERNAME:admin}
-    password: ${SPRING_RABBITMQ_PASSWORD:admin123}
+    username: ${SPRING_RABBITMQ_USERNAME:}
+    password: ${SPRING_RABBITMQ_PASSWORD:}
     listener:
       simple:
         acknowledge-mode: manual
         prefetch: 1
         retry:
-          enabled: true
-          initial-interval: 1000
-          max-interval: 10000
-          multiplier: 2.0
-          max-attempts: 3
+          # Los reintentos (max 3) son controlados explicitamente por OrderConsumer
+          # mediante basicNack(requeue=true) antes de derivar al DLX con requeue=false.
+          enabled: false
 
 server:
   port: 8081

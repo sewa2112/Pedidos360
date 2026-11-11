@@ -36,6 +36,9 @@ public class RestauranteOrderConsumer {
             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
 
         try {
+            if (data == null || data.isEmpty()) {
+                throw new IllegalArgumentException("Payload de pedido vacio recibido desde RabbitMQ");
+            }
             log.info("[DOMINIO RESTAURANTE] Evento de pedido recibido en cocina: {}", data);
 
             Integer pedidoId = null;
@@ -43,9 +46,9 @@ public class RestauranteOrderConsumer {
                 pedidoId = Integer.valueOf(data.get("pedidoId").toString());
             }
 
-            String cliente = data.getOrDefault("cliente", "Cliente Anonimo").toString();
-            String restaurante = data.getOrDefault("restaurante", "Restaurante General").toString();
-            String items = data.getOrDefault("items", "Items no especificados").toString();
+            String cliente = data.get("cliente") != null ? data.get("cliente").toString() : "Cliente Anonimo";
+            String restaurante = data.get("restaurante") != null ? data.get("restaurante").toString() : "Restaurante General";
+            String items = data.get("items") != null ? data.get("items").toString() : "Items no especificados";
 
             Integer montoTotal = 0;
             if (data.get("montoTotal") != null) {

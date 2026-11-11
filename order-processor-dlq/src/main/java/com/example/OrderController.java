@@ -11,16 +11,17 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(originPatterns = "*")
 public class OrderController {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
     @PostMapping("/send")
-    public Map<String, String> sendOrder(@RequestBody Map<String, String> payload) {
-        String orderId = payload.getOrDefault("orderId", "ORD-" + System.currentTimeMillis());
-        String customerName = payload.getOrDefault("customerName", "Unknown");
+    public Map<String, String> sendOrder(@RequestBody(required = false) Map<String, String> payload) {
+        Map<String, String> safePayload = payload != null ? payload : Map.of();
+        String orderId = safePayload.getOrDefault("orderId", "ORD-" + System.currentTimeMillis());
+        String customerName = safePayload.getOrDefault("customerName", "Unknown");
 
         String message = String.format(
             "Orden ID: %s | Cliente: %s | Hora: %s",

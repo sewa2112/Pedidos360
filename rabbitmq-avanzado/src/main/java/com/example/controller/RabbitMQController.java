@@ -10,15 +10,54 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping({"/api/rabbitmq", ""})
+@CrossOrigin(originPatterns = "*")
 public class RabbitMQController {
+
+    private static final Pattern RESOURCE_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
+    private static final Pattern EXCHANGE_TYPE_PATTERN = Pattern.compile("^(direct|topic|fanout|headers)$");
+    private static final Pattern ROUTING_KEY_PATTERN = Pattern.compile("^[a-zA-Z0-9._*#-]+$");
 
     private final RabbitResourceManager resourceManager;
 
     public RabbitMQController(RabbitResourceManager resourceManager) {
         this.resourceManager = resourceManager;
+    }
+
+    private String validateResourceName(String value, String label) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException("El nombre de " + label + " no puede estar vacío");
+        }
+        String trimmed = value.trim();
+        if (trimmed.length() < 3 || trimmed.length() > 50) {
+            throw new IllegalArgumentException("El nombre de " + label + " debe tener entre 3 y 50 caracteres");
+        }
+        if (!RESOURCE_NAME_PATTERN.matcher(trimmed).matches()) {
+            throw new IllegalArgumentException("El nombre de " + label + " solo puede contener letras, números, puntos, guiones y guiones bajos");
+        }
+        return trimmed;
+    }
+
+    private String validateExchangeType(String type) {
+        String normalized = type != null ? type.trim().toLowerCase() : "";
+        if (!EXCHANGE_TYPE_PATTERN.matcher(normalized).matches()) {
+            throw new IllegalArgumentException("El tipo de exchange debe ser: direct, topic, fanout o headers");
+        }
+        return normalized;
+    }
+
+    private String validateRoutingKey(String routingKey) {
+        if (routingKey == null || routingKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("La routing key no puede estar vacía");
+        }
+        String trimmed = routingKey.trim();
+        if (trimmed.length() > 100 || !ROUTING_KEY_PATTERN.matcher(trimmed).matches()) {
+            throw new IllegalArgumentException("La routing key contiene caracteres no permitidos o excede 100 caracteres");
+        }
+        return trimmed;
     }
 
     @PostMapping("/queues")
@@ -36,17 +75,15 @@ public class RabbitMQController {
                     ));
         }
 
-        if (queueName != null && !queueName.trim().isEmpty()) {
-            if (!queueName.matches("^[a-zA-Z0-9._-]+$")) {
-                throw new IllegalArgumentException("El nombre de la cola solo puede contener letras, números, puntos, guiones y guiones bajos");
-            }
-            CreateQueueDTO dto = CreateQueueDTO.builder().name(queueName.trim()).durable(true).build();
-            resourceManager.createQueue(dto);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body("Cola '" + dto.getName() + "' creada exitosamente");
-        }
-
-        throw new IllegalArgumentException("Debe proporcionar un nombre de cola válido (mediante cuerpo JSON o parámetro 'queueName')");
+        String validName = validateResourceName(queueName, "cola");
+        CreateQueueDTO dto = CreateQueueDTO.builder().name(validName).durable(true).build();
+        resourceManager.createQueue(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of(
+                        "message", "Cola '" + dto.getName() + "' creada exitosamente",
+                        "name", dto.getName(),
+                        "durable", dto.isDurable()
+                ));
     }
 
     @PostMapping("/exchanges")
@@ -65,17 +102,16 @@ public class RabbitMQController {
                     ));
         }
 
-        if (exchangeName != null && !exchangeName.trim().isEmpty()) {
-            if (!exchangeName.matches("^[a-zA-Z0-9._-]+$")) {
-                throw new IllegalArgumentException("El nombre del exchange solo puede contener letras, números, puntos, guiones y guiones bajos");
-            }
-            CreateExchangeDTO dto = CreateExchangeDTO.builder().name(exchangeName.trim()).type(type).durable(true).build();
-            resourceManager.createExchange(dto);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body("Exchange '" + dto.getName() + "' creado exitosamente");
-        }
-
-        throw new IllegalArgumentException("Debe proporcionar un nombre de exchange válido (mediante cuerpo JSON o parámetro 'exchangeName')");
+        String validName = validateResourceName(exchangeName, "exchange");
+        String validType = validateExchangeType(type);
+        CreateExchangeDTO dto = CreateExchangeDTO.builder().name(validName).type(validType).durable(true).build();
+        resourceManager.createExchange(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of(
+                        "message", "Exchange '" + dto.getName() + "' creado exitosamente",
+                        "name", dto.getName(),
+                        "type", dto.getType()
+                ));
     }
 
     @PostMapping("/bindings")
@@ -85,53 +121,80 @@ public class RabbitMQController {
             @RequestParam(required = false) String exchangeName,
             @RequestParam(required = false) String routingKey) {
 
-        if (bindingDto != null) {
-            resourceManager.createBinding(bindingDto);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(Map.of(
-                            "message", "Binding creado exitosamente",
-                            "queue", bindingDto.getQueueName(),
-                            "exchange", bindingDto.getExchangeName(),
-                            "routingKey", bindingDto.getRoutingKey()
-                    ));
-        }
-
-        if (queueName != null && exchangeName != null && routingKey != null
-                && !queueName.trim().isEmpty() && !exchangeName.trim().isEmpty() && !routingKey.trim().isEmpty()) {
-            CreateBindingDTO dto = CreateBindingDTO.builder()
-                    .queueName(queueName.trim())
-                    .exchangeName(exchangeName.trim())
-                    .routingKey(routingKey.trim())
+        CreateBindingDTO target = bindingDto;
+        if (target == null) {
+            target = CreateBindingDTO.builder()
+                    .queueName(validateResourceName(queueName, "cola"))
+                    .exchangeName(validateResourceName(exchangeName, "exchange"))
+                    .routingKey(validateRoutingKey(routingKey))
                     .build();
-            resourceManager.createBinding(dto);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body("Binding creado: " + queueName + " <-> " + exchangeName);
         }
 
-        throw new IllegalArgumentException("Parámetros de binding incompletos. Debe indicar queueName, exchangeName y routingKey");
+        resourceManager.createBinding(target);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of(
+                        "message", "Binding creado exitosamente",
+                        "queue", target.getQueueName(),
+                        "exchange", target.getExchangeName(),
+                        "routingKey", target.getRoutingKey()
+                ));
+    }
+
+    @DeleteMapping("/bindings")
+    public ResponseEntity<?> deleteBinding(
+            @Valid @RequestBody(required = false) CreateBindingDTO bindingDto,
+            @RequestParam(required = false) String queueName,
+            @RequestParam(required = false) String exchangeName,
+            @RequestParam(required = false) String routingKey) {
+
+        CreateBindingDTO target = bindingDto;
+        if (target == null) {
+            target = CreateBindingDTO.builder()
+                    .queueName(validateResourceName(queueName, "cola"))
+                    .exchangeName(validateResourceName(exchangeName, "exchange"))
+                    .routingKey(validateRoutingKey(routingKey))
+                    .build();
+        }
+
+        resourceManager.removeBinding(target);
+        return ResponseEntity.ok(Map.of(
+                "message", "Binding eliminado exitosamente",
+                "queue", target.getQueueName(),
+                "exchange", target.getExchangeName(),
+                "routingKey", target.getRoutingKey()
+        ));
     }
 
     @GetMapping("/queues/{queueName}")
     public ResponseEntity<?> getQueueInfo(@PathVariable String queueName) {
-        var info = resourceManager.getQueueInfo(queueName);
+        String validName = validateResourceName(queueName, "cola");
+        var info = resourceManager.getQueueInfo(validName);
         return info != null ? ResponseEntity.ok(info) : ResponseEntity.notFound().build();
     }
 
     @DeleteMapping("/queues/{queueName}")
-    public ResponseEntity<String> deleteQueue(@PathVariable String queueName) {
-        resourceManager.deleteQueue(queueName);
-        return ResponseEntity.ok("Cola '" + queueName + "' eliminada");
+    public ResponseEntity<Map<String, String>> deleteQueue(@PathVariable String queueName) {
+        String validName = validateResourceName(queueName, "cola");
+        resourceManager.deleteQueue(validName);
+        return ResponseEntity.ok(Map.of("message", "Cola '" + validName + "' eliminada", "name", validName));
     }
 
     @DeleteMapping("/exchanges/{exchangeName}")
-    public ResponseEntity<String> deleteExchange(@PathVariable String exchangeName) {
-        resourceManager.deleteExchange(exchangeName);
-        return ResponseEntity.ok("Exchange '" + exchangeName + "' eliminado");
+    public ResponseEntity<Map<String, String>> deleteExchange(@PathVariable String exchangeName) {
+        String validName = validateResourceName(exchangeName, "exchange");
+        resourceManager.deleteExchange(validName);
+        return ResponseEntity.ok(Map.of("message", "Exchange '" + validName + "' eliminado", "name", validName));
+    }
+
+    @DeleteMapping("/queues/{queueName}/messages")
+    public ResponseEntity<Map<String, String>> clearQueueMessages(@PathVariable String queueName) {
+        String validName = validateResourceName(queueName, "cola");
+        resourceManager.purgeQueue(validName);
+        return ResponseEntity.ok(Map.of("message", "Mensajes de la cola '" + validName + "' eliminados", "name", validName));
     }
 
     @PostMapping("/queues/{queueName}/purge")
-    public ResponseEntity<String> purgeQueue(@PathVariable String queueName) {
-        resourceManager.purgeQueue(queueName);
-        return ResponseEntity.ok("Cola '" + queueName + "' purgada");
+    public ResponseEntity<Map<String, String>> purgeQueue(@PathVariable String queueName) {
+        return clearQueueMessages(queueName);
     }
 }

@@ -15,9 +15,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class OrderConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(OrderConsumer.class);
-    private static final int MAX_RETRIES = 3;
+    public static final int MAX_RETRIES = 3;
 
-    // Rastreador de reintentos por tag de entrega para controlar el flujo antes de enviar al DLX
+    // Rastreador de reintentos por clave estable del mensaje (messageId o hash del payload)
     private final ConcurrentHashMap<String, AtomicInteger> retryTracker = new ConcurrentHashMap<>();
 
     /**
@@ -28,29 +28,41 @@ public class OrderConsumer {
     public void processOrder(
             String message,
             Channel channel,
-            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
+            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag,
+            @Header(value = AmqpHeaders.MESSAGE_ID, required = false) String messageId) {
 
-        String trackingKey = "msg-" + deliveryTag;
+        String safeMessage = message != null ? message : "";
+        String trackingKey = (messageId != null && !messageId.isBlank())
+                ? "id-" + messageId
+                : "payload-" + safeMessage.hashCode() + "-" + safeMessage.length();
+
         AtomicInteger attempts = retryTracker.computeIfAbsent(trackingKey, k -> new AtomicInteger(0));
         int currentAttempt = attempts.incrementAndGet();
 
         try {
-            log.info("[PROCESADOR] Recibida orden (intento {}/{}): {}", currentAttempt, MAX_RETRIES, message);
+            log.info("[PROCESADOR] Recibida orden (intento {}/{}): {}", currentAttempt, MAX_RETRIES, safeMessage);
 
-            // Simulacion de fallo en el primer intento para verificar la politica de reintentos
-            if (currentAttempt < MAX_RETRIES && message.contains("error")) {
-                throw new RuntimeException("Error simulado de negocio/conectividad al procesar: " + message);
+            String lower = safeMessage.toLowerCase();
+            boolean falloPermanente = lower.contains("error") || lower.contains("fatal") || lower.contains("dlq");
+            boolean falloTransitorio = lower.contains("reintento") || lower.contains("transitorio");
+
+            if (falloPermanente) {
+                throw new RuntimeException("Fallo permanente al procesar orden: " + safeMessage);
+            }
+
+            if (falloTransitorio && currentAttempt < MAX_RETRIES) {
+                throw new RuntimeException("Fallo transitorio simulado (recuperable en intento " + MAX_RETRIES + "): " + safeMessage);
             }
 
             // Procesamiento exitoso
-            log.info("[EXITO] Orden procesada correctamente en intento {}: {}", currentAttempt, message);
+            log.info("[EXITO] Orden procesada correctamente en intento {}: {}", currentAttempt, safeMessage);
             retryTracker.remove(trackingKey);
 
             // Ack manual hacia RabbitMQ
             channel.basicAck(deliveryTag, false);
 
         } catch (Exception e) {
-            log.warn("[FALLO] Intento {} fallido para el mensaje: {}. Causa: {}", currentAttempt, message, e.getMessage());
+            log.warn("[FALLO] Intento {} fallido para el mensaje: {}. Causa: {}", currentAttempt, safeMessage, e.getMessage());
 
             try {
                 if (currentAttempt < MAX_RETRIES) {
@@ -58,7 +70,7 @@ public class OrderConsumer {
                     log.info("[REINTENTO] Reencolando mensaje (intento {} de {}) con basicNack(requeue=true)", currentAttempt, MAX_RETRIES);
                     channel.basicNack(deliveryTag, false, true);
                 } else {
-                    // Reintentos agotados: Desvia al Dead Letter Exchange (DLX)
+                    // Reintentos agotados: Desvia al Dead Letter Exchange (DLX) con requeue=false
                     log.error("[DLX] Maximo de reintentos alcanzado ({}). Desviando mensaje a DLX con basicNack(requeue=false)", MAX_RETRIES);
                     retryTracker.remove(trackingKey);
                     channel.basicNack(deliveryTag, false, false);

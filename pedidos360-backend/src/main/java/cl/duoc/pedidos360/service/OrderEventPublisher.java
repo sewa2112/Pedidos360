@@ -33,6 +33,8 @@ public class OrderEventPublisher {
             event.put("pedidoId", pedido.getId());
             event.put("cliente", pedido.getCliente());
             event.put("restaurante", pedido.getRestaurante());
+            event.put("items", pedido.getItems());
+            event.put("direccion", pedido.getDireccion());
             event.put("montoTotal", pedido.getMontoTotal());
             event.put("estado", pedido.getEstado());
             event.put("fecha", pedido.getFecha() != null ? pedido.getFecha().toString() : null);

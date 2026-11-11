@@ -14,6 +14,7 @@ public class CreateExchangeDTO {
     )
     private String name;
 
+    @NotBlank(message = "El tipo de exchange no puede estar vacío")
     @Pattern(regexp = "^(direct|topic|fanout|headers)$", message = "El tipo de exchange debe ser: direct, topic, fanout o headers")
     private String type = "direct";
 

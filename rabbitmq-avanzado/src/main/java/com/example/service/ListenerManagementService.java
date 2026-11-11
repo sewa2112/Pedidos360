@@ -19,28 +19,28 @@ public class ListenerManagementService {
         this.registry = registry;
     }
 
-    public void pauseListener(String listenerId) {
-        try {
-            MessageListenerContainer container = registry.getListenerContainer(listenerId);
-            if (container != null && container.isRunning()) {
-                container.stop();
-                log.info("Listener pausado: {}", listenerId);
-            }
-        } catch (Exception e) {
-            log.error("Error al pausar listener: {}", e.getMessage());
+    public boolean pauseListener(String listenerId) {
+        MessageListenerContainer container = registry.getListenerContainer(listenerId);
+        if (container == null) {
+            log.warn("Listener no encontrado para pausar: {}", listenerId);
+            return false;
         }
+        if (container.isRunning()) {
+            container.stop();
+            log.info("Listener pausado: {}", listenerId);
+        }
+        return true;
     }
 
-    public void resumeListener(String listenerId) {
-        try {
-            MessageListenerContainer container = registry.getListenerContainer(listenerId);
-            if (container != null) {
-                container.start();
-                log.info("Listener reanudado: {}", listenerId);
-            }
-        } catch (Exception e) {
-            log.error("Error al reanudar listener: {}", e.getMessage());
+    public boolean resumeListener(String listenerId) {
+        MessageListenerContainer container = registry.getListenerContainer(listenerId);
+        if (container == null) {
+            log.warn("Listener no encontrado para reanudar: {}", listenerId);
+            return false;
         }
+        container.start();
+        log.info("Listener reanudado: {}", listenerId);
+        return true;
     }
 
     public List<String> getAllListenerIds() {

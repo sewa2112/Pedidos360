@@ -75,6 +75,20 @@ public class RabbitResourceManager {
         }
     }
 
+    public void removeBinding(com.example.dto.CreateBindingDTO dto) {
+        try {
+            Binding binding = BindingBuilder
+                    .bind(new Queue(dto.getQueueName()))
+                    .to(new DirectExchange(dto.getExchangeName()))
+                    .with(dto.getRoutingKey());
+            rabbitAdmin.removeBinding(binding);
+            log.info("Binding eliminado: {} -> {} [key: {}]", dto.getQueueName(), dto.getExchangeName(), dto.getRoutingKey());
+        } catch (Exception e) {
+            log.error("Error al eliminar binding: {}", e.getMessage());
+            throw new RuntimeException("Error al eliminar binding en RabbitMQ: " + e.getMessage(), e);
+        }
+    }
+
     public QueueInformation getQueueInfo(String queueName) {
         try {
             QueueInformation info = rabbitAdmin.getQueueInfo(queueName);

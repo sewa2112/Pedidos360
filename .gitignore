@@ -1,0 +1,12 @@
+# Archivos de variables de entorno con credenciales reales
+.env
+*.env.local
+
+# Compilados y caches (evitar subir artefactos compilados al repositorio o ZIP)
+**/target/
+**/dist/
+**/node_modules/
+**/.angular/
+.DS_Store
+Thumbs.db
+*.log

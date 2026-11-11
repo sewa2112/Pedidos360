@@ -1,11 +1,14 @@
 package com.example.controller;
 
+import com.example.service.ListenerManagementService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.example.service.ListenerManagementService;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/listeners")
+@CrossOrigin(originPatterns = "*")
 public class ListenerController {
 
     private final ListenerManagementService listenerService;
@@ -20,15 +23,26 @@ public class ListenerController {
     }
 
     @PostMapping("/{listenerId}/pause")
-    public ResponseEntity<String> pauseListener(@PathVariable String listenerId) {
-        listenerService.pauseListener(listenerId);
-        return ResponseEntity.ok("Listener pausado: " + listenerId);
+    public ResponseEntity<?> pauseListener(@PathVariable String listenerId) {
+        if (listenerId == null || listenerId.isBlank()) {
+            throw new IllegalArgumentException("El listenerId no puede estar vacío");
+        }
+        boolean found = listenerService.pauseListener(listenerId.trim());
+        if (!found) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(Map.of("message", "Listener pausado: " + listenerId.trim(), "listenerId", listenerId.trim()));
     }
 
     @PostMapping("/{listenerId}/resume")
-    public ResponseEntity<String> resumeListener(@PathVariable String listenerId) {
-        listenerService.resumeListener(listenerId);
-        return ResponseEntity.ok("Listener reanudado: " + listenerId);
+    public ResponseEntity<?> resumeListener(@PathVariable String listenerId) {
+        if (listenerId == null || listenerId.isBlank()) {
+            throw new IllegalArgumentException("El listenerId no puede estar vacío");
+        }
+        boolean found = listenerService.resumeListener(listenerId.trim());
+        if (!found) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(Map.of("message", "Listener reanudado: " + listenerId.trim(), "listenerId", listenerId.trim()));
     }
 }
-

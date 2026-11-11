@@ -2,18 +2,23 @@ package com.example.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public class CreateBindingDTO {
 
     @NotBlank(message = "El nombre de la cola no puede estar vacío")
+    @Size(min = 3, max = 50, message = "El nombre de la cola debe tener entre 3 y 50 caracteres")
     @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "Nombre de cola inválido")
     private String queueName;
 
     @NotBlank(message = "El nombre del exchange no puede estar vacío")
+    @Size(min = 3, max = 50, message = "El nombre del exchange debe tener entre 3 y 50 caracteres")
     @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "Nombre de exchange inválido")
     private String exchangeName;
 
     @NotBlank(message = "La routing key no puede estar vacía")
+    @Size(min = 1, max = 100, message = "La routing key debe tener entre 1 y 100 caracteres")
+    @Pattern(regexp = "^[a-zA-Z0-9._*#-]+$", message = "La routing key contiene caracteres no permitidos")
     private String routingKey;
 
     public CreateBindingDTO() {
