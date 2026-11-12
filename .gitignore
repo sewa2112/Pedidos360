@@ -4,7 +4,9 @@
 
 # Compilados y caches (evitar subir artefactos compilados al repositorio o ZIP)
 **/target/
-**/dist/
+dist/
+!pedidos360-frontend/dist/
+!pedidos360-frontend/dist/**
 **/node_modules/
 **/.angular/
 .DS_Store
