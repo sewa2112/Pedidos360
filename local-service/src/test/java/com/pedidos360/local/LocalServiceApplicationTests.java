@@ -55,6 +55,12 @@ class LocalServiceApplicationTests {
     @Autowired
     private RestauranteStatusConsumer restauranteStatusConsumer;
 
+    @Autowired
+    private com.pedidos360.local.kafka.CocinaStreamConsumer cocinaStreamConsumer;
+
+    @Autowired
+    private com.pedidos360.local.kafka.AuditoriaStreamConsumer auditoriaStreamConsumer;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -69,6 +75,8 @@ class LocalServiceApplicationTests {
         assertNotNull(localController);
         assertNotNull(restauranteOrderConsumer);
         assertNotNull(restauranteStatusConsumer);
+        assertNotNull(cocinaStreamConsumer);
+        assertNotNull(auditoriaStreamConsumer);
     }
 
     @Test
@@ -171,8 +179,35 @@ class LocalServiceApplicationTests {
 
         mockMvc.perform(put("/api/locales/pedidos/" + creado.getId() + "/estado")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"estado\":\"LISTO_PARA_ENTREGA\"}"))
+                        .content("{\"estado\":\"LISTO\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.estado").value("LISTO_PARA_ENTREGA"));
+                .andExpect(jsonPath("$.estado").value("LISTO"));
+    }
+
+    @Test
+    @DisplayName("CocinaStreamConsumer procesa PedidoStreamEventDTO y lo registra en el servicio local")
+    void testKafkaCocinaStreamConsumer() {
+        com.pedidos360.local.dto.PedidoStreamEventDTO dto = new com.pedidos360.local.dto.PedidoStreamEventDTO(
+                777, "Sofia Alarcon", "Pizzeria Napoli", "2x Pizza Margarita", "Av. Providencia 123", 16000, "CREADO", "2026-11-12", "2026-11-12T19:00:00"
+        );
+
+        cocinaStreamConsumer.procesarOrdenEnCocina(dto);
+
+        List<Pedido> pedidos = localService.listarPedidosPorRestaurante("Pizzeria Napoli");
+        assertTrue(pedidos.stream().anyMatch(p -> Integer.valueOf(777).equals(p.getPedidoId()) && "STREAM_EN_COCINA".equals(p.getEstado())));
+
+        // Descarte controlado de payload nulo
+        assertDoesNotThrow(() -> cocinaStreamConsumer.procesarOrdenEnCocina(null));
+    }
+
+    @Test
+    @DisplayName("AuditoriaStreamConsumer procesa PedidoAuditDTO y tolera cargas nulas")
+    void testKafkaAuditoriaStreamConsumer() {
+        com.pedidos360.local.dto.PedidoAuditDTO audit = new com.pedidos360.local.dto.PedidoAuditDTO(
+                "evt-123", "CREAR_PEDIDO", "PEDIDO", "888", "sistema", "2026-11-12T19:00:00", "Auditoria de streaming"
+        );
+
+        assertDoesNotThrow(() -> auditoriaStreamConsumer.procesarAuditoria(audit));
+        assertDoesNotThrow(() -> auditoriaStreamConsumer.procesarAuditoria(null));
     }
 }

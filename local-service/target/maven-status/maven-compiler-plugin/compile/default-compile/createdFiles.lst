@@ -1,11 +1,11 @@
-com\pedidos360\local\dto\CreateLocalDTO.class
 com\pedidos360\local\consumer\RestauranteOrderConsumer.class
-com\pedidos360\local\LocalServiceApplication.class
 com\pedidos360\local\dto\UpdateEstadoPedidoDTO.class
 com\pedidos360\local\controller\LocalController.class
+com\pedidos360\local\config\RabbitMQConfig.class
+com\pedidos360\local\repository\LocalRepository.class
+com\pedidos360\local\dto\CreateLocalDTO.class
+com\pedidos360\local\LocalServiceApplication.class
 com\pedidos360\local\repository\PedidoRepository.class
 com\pedidos360\local\models\Pedido.class
-com\pedidos360\local\config\RabbitMQConfig.class
 com\pedidos360\local\service\LocalService.class
 com\pedidos360\local\models\Local.class
-com\pedidos360\local\repository\LocalRepository.class

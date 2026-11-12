@@ -1,16 +1,26 @@
 package com.example;
 
 import com.example.config.RabbitAdminConfig;
+import com.example.controller.KafkaTopicAdminController;
 import com.example.controller.RabbitMQController;
 import com.example.dto.CreateBindingDTO;
 import com.example.dto.CreateExchangeDTO;
+import com.example.dto.CreateKafkaTopicDTO;
 import com.example.dto.CreateQueueDTO;
 import com.example.listener.OrderListener;
+import com.example.service.KafkaTopicAdminService;
 import com.example.service.RabbitResourceManager;
 import com.rabbitmq.client.Channel;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.CreateTopicsResult;
+import org.apache.kafka.clients.admin.DeleteTopicsResult;
+import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
+import org.apache.kafka.clients.admin.ListTopicsOptions;
+import org.apache.kafka.clients.admin.ListTopicsResult;
+import org.apache.kafka.common.KafkaFuture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +47,9 @@ class RabbitMQAvanzadoTests {
 
     @Mock
     private Channel channel;
+
+    @Mock
+    private AdminClient adminClient;
 
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
@@ -121,5 +134,59 @@ class RabbitMQAvanzadoTests {
 
         verify(channel, times(1)).basicAck(7L, false);
         verify(channel, never()).basicNack(anyLong(), anyBoolean(), anyBoolean());
+    }
+
+    @Test
+    @DisplayName("CreateKafkaTopicDTO valida nombres no vacios, particiones y factor de replicacion positivos")
+    void testKafkaTopicDtoValidation() {
+        CreateKafkaTopicDTO validDto = new CreateKafkaTopicDTO("pedidos-stream", 3, (short) 1, 604800000L, "delete");
+        assertTrue(validator.validate(validDto).isEmpty());
+        assertEquals("604800000", validDto.toTopicConfigs().get("retention.ms"));
+        assertEquals("delete", validDto.toTopicConfigs().get("cleanup.policy"));
+
+        CreateKafkaTopicDTO invalidName = new CreateKafkaTopicDTO("", 3, (short) 1, 604800000L, "delete");
+        assertFalse(validator.validate(invalidName).isEmpty());
+
+        CreateKafkaTopicDTO invalidPartitions = new CreateKafkaTopicDTO("pedidos-stream", 0, (short) 1, 604800000L, "delete");
+        assertFalse(validator.validate(invalidPartitions).isEmpty());
+
+        CreateKafkaTopicDTO invalidReplication = new CreateKafkaTopicDTO("pedidos-stream", 1, (short) 0, 604800000L, "delete");
+        assertFalse(validator.validate(invalidReplication).isEmpty());
+    }
+
+    @Test
+    @DisplayName("KafkaTopicAdminService delega creacion, listado y eliminacion hacia AdminClient de Kafka")
+    void testKafkaTopicAdminServiceDelegation() throws Exception {
+        KafkaTopicAdminService service = new KafkaTopicAdminService(adminClient);
+
+        // 1. Test createTopic
+        CreateTopicsResult createResult = mock(CreateTopicsResult.class);
+        KafkaFuture<Void> createFuture = mock(KafkaFuture.class);
+        when(createResult.all()).thenReturn(createFuture);
+        when(adminClient.createTopics(any(java.util.Collection.class))).thenReturn(createResult);
+
+        CreateKafkaTopicDTO dto = new CreateKafkaTopicDTO("pedidos-stream", 3, (short) 1, 604800000L, "delete");
+        assertTrue(service.createTopic(dto));
+        verify(adminClient).createTopics(any(java.util.Collection.class));
+
+        // 2. Test listTopics
+        ListTopicsResult listResult = mock(ListTopicsResult.class);
+        KafkaFuture<Set<String>> listFuture = mock(KafkaFuture.class);
+        when(listFuture.get(anyLong(), any())).thenReturn(Set.of("pedidos-stream", "pedidos-audit-stream"));
+        when(listResult.names()).thenReturn(listFuture);
+        when(adminClient.listTopics(any(ListTopicsOptions.class))).thenReturn(listResult);
+
+        var topics = service.listTopics();
+        assertEquals(2, topics.size());
+        assertTrue(topics.contains("pedidos-stream"));
+
+        // 3. Test deleteTopic
+        DeleteTopicsResult deleteResult = mock(DeleteTopicsResult.class);
+        KafkaFuture<Void> deleteFuture = mock(KafkaFuture.class);
+        when(deleteResult.all()).thenReturn(deleteFuture);
+        when(adminClient.deleteTopics(any(java.util.Collection.class))).thenReturn(deleteResult);
+
+        assertTrue(service.deleteTopic("pedidos-stream"));
+        verify(adminClient).deleteTopics(any(java.util.Collection.class));
     }
 }

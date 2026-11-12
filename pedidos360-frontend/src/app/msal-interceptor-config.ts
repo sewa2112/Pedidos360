@@ -6,6 +6,7 @@ export function msalInterceptorConfigFactory(): MsalInterceptorConfiguration {
   const protectedResourceMap = new Map<string, Array<string>>([
     ['https://0i74gnrx68.execute-api.us-east-1.amazonaws.com/*', environment.azure.protectedResourceScopes],
     [`${environment.apiBaseUrl}/*`, environment.azure.protectedResourceScopes],
+    ['/api/*', environment.azure.protectedResourceScopes],
     ['http://localhost:8085/*', environment.azure.protectedResourceScopes]
   ]);
 

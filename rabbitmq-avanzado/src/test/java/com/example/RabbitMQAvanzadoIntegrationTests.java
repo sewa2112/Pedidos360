@@ -1,5 +1,11 @@
 package com.example;
 
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.CreateTopicsResult;
+import org.apache.kafka.clients.admin.DeleteTopicsResult;
+import org.apache.kafka.clients.admin.ListTopicsOptions;
+import org.apache.kafka.clients.admin.ListTopicsResult;
+import org.apache.kafka.common.KafkaFuture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Binding;
@@ -11,11 +17,12 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Set;
+
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,6 +35,9 @@ class RabbitMQAvanzadoIntegrationTests {
 
     @MockBean
     private RabbitAdmin rabbitAdmin;
+
+    @MockBean
+    private AdminClient adminClient;
 
     @Test
     @DisplayName("Integracion HTTP: validacion rechaza DTOs y tipos de exchange invalidos con 400 Bad Request")
@@ -77,5 +87,38 @@ class RabbitMQAvanzadoIntegrationTests {
     void testListenerNotFound() throws Exception {
         mockMvc.perform(post("/api/listeners/inexistente/pause"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Integracion HTTP: endpoints REST de Kafka administran creacion y listado de topicos")
+    void testKafkaEndpointsIntegration() throws Exception {
+        // Mock listTopics
+        ListTopicsResult listResult = mock(ListTopicsResult.class);
+        KafkaFuture<Set<String>> listFuture = mock(KafkaFuture.class);
+        when(listFuture.get(anyLong(), any())).thenReturn(Set.of("pedidos-stream", "pedidos-audit-stream"));
+        when(listResult.names()).thenReturn(listFuture);
+        when(adminClient.listTopics(any(ListTopicsOptions.class))).thenReturn(listResult);
+
+        mockMvc.perform(get("/api/kafka/topics"))
+                .andExpect(status().isOk());
+
+        // Mock createTopics
+        CreateTopicsResult createResult = mock(CreateTopicsResult.class);
+        KafkaFuture<Void> createFuture = mock(KafkaFuture.class);
+        when(createResult.all()).thenReturn(createFuture);
+        when(adminClient.createTopics(any())).thenReturn(createResult);
+
+        mockMvc.perform(post("/api/kafka/topics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"pedidos-stream\",\"partitions\":3,\"replicationFactor\":1,\"retentionMs\":604800000,\"cleanupPolicy\":\"delete\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.topic").value("pedidos-stream"))
+                .andExpect(jsonPath("$.partitions").value(3));
+
+        // Mock validation failure
+        mockMvc.perform(post("/api/kafka/topics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\",\"partitions\":0}"))
+                .andExpect(status().isBadRequest());
     }
 }

@@ -60,6 +60,9 @@ class Pedidos360BackendApplicationTests {
     private RabbitTemplate rabbitTemplate;
 
     @MockitoBean
+    private org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
+
+    @MockitoBean
     private JwtDecoder jwtDecoder;
 
     private MockMvc mockMvc;
@@ -111,6 +114,18 @@ class Pedidos360BackendApplicationTests {
         assertEquals("Pizzeria Napoli", evento.get("restaurante"));
         assertEquals("1x Pizza Margherita, 2x Bebida", evento.get("items"));
         assertEquals(16500, evento.get("montoTotal"));
+
+        // Verificacion de streaming dual hacia los dos topicos Kafka exigidos por la rubrica
+        verify(kafkaTemplate, times(1)).send(
+                eq(cl.duoc.pedidos360.config.KafkaProducerConfig.TOPIC_PEDIDOS_STREAM),
+                eq(guardado.getId().toString()),
+                any(cl.duoc.pedidos360.dto.PedidoStreamEventDTO.class)
+        );
+        verify(kafkaTemplate, times(1)).send(
+                eq(cl.duoc.pedidos360.config.KafkaProducerConfig.TOPIC_PEDIDOS_AUDIT),
+                eq(guardado.getId().toString()),
+                any(cl.duoc.pedidos360.dto.PedidoAuditDTO.class)
+        );
     }
 
     @Test

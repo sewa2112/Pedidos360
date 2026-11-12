@@ -129,6 +129,7 @@ A traves de `ListenerManagementService` y su controlador REST, es posible detene
 | **Administrador RabbitMQ** | `rabbitmq-avanzado` | Spring Boot 3 + Spring AMQP | `8080` | Endpoints REST para administrar colas/exchanges/bindings, control dinamico de listeners y cluster. |
 | **Sistema de Logging** | `logging-system` | Spring Boot 3 + Spring AMQP | `8083` | Auditoria y alertas criticas desacopladas por severidad con validacion de eventos y manual ACK/NACK. |
 | **Broker de Mensajeria** | Contenedor Docker | RabbitMQ 3.12 Management | `5672` (AMQP) / `15672` (Web UI) | Broker de eventos y colas con interfaz grafica de administracion y healthcheck integrado. |
+| **Broker de Event Streaming** | Contenedor Docker | Apache Kafka 4.3.1 (KRaft) | `9092` (PLAINTEXT) | Ingestion distribuida de flujo continuo de eventos, particionamiento en paralelo y retencion configurable sin Zookeeper. |
 | **Base de Datos Cloud** | AWS RDS Gestionada | MySQL 8.0 | `3306` | Persistencia relacional de clientes, restaurantes, items y pedidos. |
 
 ---
@@ -191,3 +192,102 @@ sudo docker exec pedidos360-rabbitmq rabbitmqadmin -u "$SPRING_RABBITMQ_USERNAME
 6. **Endpoints REST de administracion (13%)**: Rutas bien estructuradas bajo `/api/rabbitmq/*` y `/api/listeners/*`.
 7. **Servicio dedicado (10%)**: Encapsulacion completa de `RabbitAdmin` en `RabbitResourceManager`.
 8. **Validacion de parametros (7%)**: Uso de DTOs con Bean Validation (`@NotBlank`, `@Size`, `@Pattern`) y manejo global de excepciones con codigo HTTP 400 descriptivo.
+
+---
+
+## 8. Experiencia de Aprendizaje 3 - Primer Stream de Datos con Apache Kafka
+
+En esta unidad incorporamos **Apache Kafka 4.3.1** bajo arquitectura **KRaft** (sin dependencia de Zookeeper). RabbitMQ y Kafka conviven en el ecosistema:
+
+- **RabbitMQ**: Modelo de cola de trabajo (trabajos transaccionales y cola de mensajes muertos DLQ).
+- **Apache Kafka**: Modelo de event streaming continuo (flujo continuo de eventos particionado con retencion y capacidad de replay).
+
+### 8.1. Arquitectura de Streaming
+
+```text
+[ Producer (Consola / PowerShell) ]
+               |
+               v
+  [ Broker Apache Kafka (Docker) ]
+         pedidos360-kafka:9092
+               |
+               v
+     [ Topic: pedidos-stream ]
+     +----------+----------+
+     |          |          |
+     v          v          v
+Particion 0  Particion 1  Particion 2
+     |          |          |
+     +----------+----------+
+               |
+               v
+[ Consumer (Consola / PowerShell) ]
+```
+
+### 8.2. Pasos de Ejecucion (Clase Practica I)
+
+#### 1. Validar configuracion de Docker Compose
+```powershell
+docker compose config
+```
+
+#### 2. Levantar la infraestructura de Kafka junto a RabbitMQ
+```powershell
+# Levantar el servicio de Kafka (o todo el stack)
+docker compose up -d kafka
+
+# Verificar que el contenedor esta en ejecucion (Up)
+docker ps -a --filter "name=pedidos360-kafka"
+```
+
+#### 3. Crear el topic con 3 particiones y factor de replicacion 1
+```powershell
+# O ejecutar el script automatizado: .\scripts\crear-topic-kafka.ps1
+docker exec pedidos360-kafka /opt/kafka/bin/kafka-topics.sh `
+  --create `
+  --if-not-exists `
+  --topic pedidos-stream `
+  --partitions 3 `
+  --replication-factor 1 `
+  --bootstrap-server localhost:9092
+```
+
+#### 4. Confirmar creacion y consultar estructura del topic
+```powershell
+# Listar topics existentes
+docker exec pedidos360-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+
+# Inspeccionar particiones y lideres
+docker exec pedidos360-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --describe --topic pedidos-stream
+```
+
+#### 5. Enviar eventos con el Console Producer (Ventana 1)
+```powershell
+# O ejecutar: .\scripts\iniciar-producer-kafka.ps1
+docker exec -it pedidos360-kafka /opt/kafka/bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic pedidos-stream
+```
+Escriba eventos linea por linea:
+```text
+>Pedido 001 creado
+>Pedido 002 confirmado
+>Pedido 003 enviado
+```
+
+#### 6. Leer eventos con el Console Consumer (Ventana 2)
+```powershell
+# Lectura historica desde el inicio
+docker exec -it pedidos360-kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic pedidos-stream --from-beginning
+
+# O lectura en vivo para streaming en tiempo real (iniciar antes de producir nuevos eventos)
+docker exec -it pedidos360-kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic pedidos-stream
+```
+
+### 8.3. Conceptos Clave Evaluados
+
+- **Broker**: Servidor Kafka que recibe, almacena de forma inmutable y distribuye eventos (`pedidos360-kafka`).
+- **Topic**: Canal logico categorizado donde se registran los eventos (`pedidos-stream`).
+- **Partition**: Division fisica de un topic que permite procesamiento en paralelo y escalabilidad horizontal (3 particiones creadas).
+- **Offset**: Identificador secuencial unico de cada evento dentro de una particion.
+- **Producer**: Componente emisor que publica registros en el topic.
+- **Consumer**: Componente receptor que lee registros desde uno o varios topics.
+- **Replay & Retencion**: Capacidad de reproducir eventos pasados mediante `--from-beginning` gracias a la persistencia en disco de Kafka.
